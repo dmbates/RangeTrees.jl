@@ -1,5 +1,7 @@
 module RangeTrees
 
+using AbstractTrees
+
 """
     RangeNode{T}
 
@@ -17,17 +19,19 @@ that allows for efficient intersection of an interval with all the nodes of a
 """ 
 struct RangeNode{T}
     intvl::UnitRange{T}  # value of the node
-    left::Int    # index of the left subtree (0 => no left subtree)
-    right::Int   # index of the right subtree (0 => no right subtree)
+    left::Int    # index of the root of the left subtree (0 => no left subtree)
+    right::Int   # index of the root of the right subtree (0 => no right subtree)
+    parent::Int  # index of the parent (0 => no parent)
     maxlast::T   # maximum(last(n.intvl) where n is a node in this node's subtree)
 end
 
 """
     midrange(rng::UnitRange{T})::T
 
-Return the median of `rng`, rounding up when `length(rng)` is even.
+Return the largest median of `rng`.
 """
 midrange(rng::UnitRange{T}) where T = (first(rng) + last(rng) + one(T)) >> 1
+midrange(one2::Base.OneTo{T}) where T = (last(one2) + one(T) + one(T)) >> 1
 
 """
     _addchildren!(v::Vector{RangeNode{T}}, inds::UnitRange) where T
@@ -36,20 +40,20 @@ Internal utility to recursively re-write the `left`, `right`, and `maxlast`
 fields in `v[inds]` so as to form an augmented, balanced, binary
 [interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree).
 """
-function _addchildren!(v::Vector{RangeNode{T}}, inds::UnitRange) where T
+function _addchildren!(v::Vector{RangeNode{T}}, inds::UnitRange, parent) where T
     mid = midrange(inds)
     (; intvl, left, right, maxlast) = v[mid]
     linds = first(inds):(mid - 1) 
     if !isempty(linds)
-        left = _addchildren!(v, linds)
+        left = _addchildren!(v, linds, mid)
         maxlast = max(maxlast, v[left].maxlast)
     end
     rinds = (mid + 1):last(inds)
     if !isempty(rinds)
-        right = _addchildren!(v, rinds)
+        right = _addchildren!(v, rinds, mid)
         maxlast = max(maxlast, v[right].maxlast)
     end
-    v[mid] = RangeNode(intvl, left, right, maxlast)
+    v[mid] = RangeNode(intvl, left, right, parent, maxlast)
     return mid
 end
 
@@ -78,16 +82,17 @@ julia> intersect(40:59, rt)
 """
 struct RangeTree{T}
     nodes::Vector{RangeNode{T}}
-    rootind::Integer
 end
 
 function RangeTree(v::AbstractVector{UnitRange{T}}) where T
     issorted(v; by=first) || sort!(v; by=first)
-    v = [RangeNode(ivl, 0, 0, last(ivl)) for ivl in v]
-    range = UnitRange(eachindex(v))
-    _addchildren!(v, range)
-    return RangeTree(v, midrange(range))
+    v = [RangeNode(ivl, 0, 0, 0, last(ivl)) for ivl in v]
+    _addchildren!(v, UnitRange(eachindex(v)), 0)
+    return RangeTree(v)
 end
+
+Base.eachindex(rt::RangeTree) = eachindex(rt.nodes)
+Base.getindex(rt::RangeTree, idx::Integer) = rt.nodes[idx]
 
 """
     intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeTree, index)
@@ -101,46 +106,51 @@ function intersect!(
     rt::RangeTree{T},
     node_index::Integer
 ) where T
-    (; intvl, left, right, maxlast) = rt.nodes[node_index]
+    (; intvl, left, right, maxlast) = rt[node_index]
 
-        # Check the left subtree, if any, unless this interval is to the right of the target
-        # (nodes are constructed to be sorted by the first(intvl)).
-    iszero(left) || last(target) < first(intvl) || intersect!(result, target, rt, left)
+    maxlast < first(target) && return result
 
-    intsect = intersect(intvl, target)
-    isempty(intsect) || push!(result, intsect)
-
-        # Check the right subtree, if any, unless the target is to the right of maxlast.
-    iszero(right) || maxlast < first(target) || intersect!(result, target, rt, right)
+    iszero(left) || intersect!(result, target, rt, left)
+    isect = intersect(intvl, target)
+    isempty(isect) || push!(result, isect)
+    iszero(right) || last(target) < first(intvl) || intersect!(result, target, rt, right)
     return result
 end
 
 function intersect!(result::Vector{UnitRange{T}}, target::UnitRange{T}, rt::RangeTree{T}) where T
-    return intersect!(result, target, rt, rt.rootind)
+    return intersect!(result, target, rt, rootindex(rt))
 end
 
-function Base.intersect(target::UnitRange{T}, rt::RangeTree{T}) where T
+function Base.intersect(target::AbstractUnitRange{T}, rt::RangeTree{T}) where T
     return intersect!(typeof(target)[], target, rt)
 end
 
-# hook into the AbstractTrees interface through IndexNode (not working at present).
+function Base.intersect(refs::RangeTree{T}, target::AbstractUnitRange{T}) where T
+    return intersect(target, refs)
+end
 
-using AbstractTrees
+# methods for generics from AbstractTrees
 
-AbstractTrees.ChildIndexing(::Type{<:RangeTree{T}}) where T = IndexedChildren()
-
-AbstractTrees.IndexNode(rt::RangeTree, node_index) = rt.nodes[node_index]
-
-function AbstractTrees.childindices(rt::RangeTree, node_index)
-    (; left, right) = IndexNode(rt, node_index)
+function AbstractTrees.childindices(rt::RangeTree, idx::Integer)
+    (; left, right) = rt[idx]
 
     nullrt = iszero(right)
     return iszero(left) ? (nullrt ? () : (right,)) : (nullrt ? (left,) : (left, right))
 end
 
-AbstractTrees.nodevalue(rt::RangeTree, idx) = rt.nodes[idx].intvl
+function AbstractTrees.nodevalue(rt::RangeTree, idx::Integer)
+    nv = rt[idx]
+    return (nv.intvl, nv.maxlast)
+end
 
-AbstractTrees.rootindex(rt::RangeTree) = rt.rootind
+function AbstractTrees.parentindex(rt::RangeTree, idx::Integer)
+    parind = rt[idx].parent
+    return iszero(parind) ? nothing : parind
+end
+
+function AbstractTrees.rootindex(rt::RangeTree)
+    return midrange(eachindex(rt))
+end
 
 export
     Leaves,
@@ -152,6 +162,7 @@ export
     childindices,
     intersect!,
     midrange,
+    parentindex,
     print_tree,
     rootindex,
     treebreadth,
