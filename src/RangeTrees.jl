@@ -71,19 +71,24 @@ end
     intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeTree, index)
 
 Recursively intersect `target` with the intervals in the subtree of `rt.nodes[index]`.
-Non-empty intersections are `push!`'d onto `result` in sorted order.
+Non-empty intersections are pushed onto `result` in sorted order.
 """
 function intersect!(
     result::Vector{UnitRange{T}},
     target::UnitRange{T},
     rt::RangeTree{T},
-    nodeind::Integer
+    node_index::Integer
 ) where T
-    (; intvl, left, right, maxlast) = rt.nodes[nodeind]
+    (; intvl, left, right, maxlast) = rt.nodes[node_index]
 
+        # Check the left subtree, if any, unless this interval is to the right of the target
+        # (nodes are constructed to be sorted by the first(intvl)).
     iszero(left) || last(target) < first(intvl) || intersect!(result, target, rt, left)
+
     intsect = intersect(intvl, target)
     isempty(intsect) || push!(result, intsect)
+
+        # Check the right subtree, if any, unless the target is to the right of maxlast.
     iszero(right) || maxlast < first(target) || intersect!(result, target, rt, right)
     return result
 end
@@ -95,12 +100,38 @@ end
 function Base.intersect(target::UnitRange{T}, rt::RangeTree{T}) where T
     return intersect!(typeof(target)[], target, rt)
 end
-  
+
+AbstractTrees.ChildIndexing(::Type{<:RangeTree}) = IndexedChildren()
+
+AbstractTrees.IndexNode(rt::RangeTree, node_index) = rt.nodes[node_index]
+
+function AbstractTrees.childindices(rt::RangeTree, node_index)
+    (; left, right) = IndexNode(rt, node_index)
+    if iszero(left)
+        return iszero(right) ? () : (right,)
+    else
+        return iszero(right) ? (left,) : (left, right)
+    end
+end
+
+AbstractTrees.nodevalue(rt::RangeTree, idx) = rt.nodes[idx].intvl
+
+AbstractTrees.rootindex(rt::RangeTree) = rt.rootind
+
 export
+    Leaves,
+    PostOrderDFS,
+    PreOrderDFS,
     RangeNode,
     RangeTree,
 
+    childindices,
+    intersect!,
     midrange,
-    intersect!
+    print_tree,
+    rootindex,
+    treebreadth,
+    treeheight,
+    treesize
 
 end
