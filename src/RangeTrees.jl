@@ -122,7 +122,7 @@ function intersect!(
 end
 
 function intersect!(result::Vector{UnitRange{T}}, target::UnitRange{T}, rt::RangeTree{T}) where T
-    return intersect!(result, target, rt, rootindex(rt))
+    return intersect!(empty!(result), target, rt, rootindex(rt))
 end
 
 function Base.intersect(target::AbstractUnitRange{T}, rt::RangeTree{T}) where T
