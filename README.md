@@ -1,4 +1,4 @@
-# RangeTrees
+# RangeTrees.jl
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://dmbates.github.io/RangeTrees.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://dmbates.github.io/RangeTrees.jl/dev/)
@@ -7,7 +7,7 @@
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![PkgEval](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/R/RangeTrees.svg)](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
-This package defines the `RangeTree` and `RangeNode` types to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{<:Interval}}`.
+This [Julia](https://julialang.org) package defines the `RangeTree` and `RangeNode` types to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{<:Interval}}`.
 An `intersect` method allows for evaluation of coverage of segments, as in the [coverage](https://bedtools.readthedocs.io/en/latest/content/tools/coverage.html) program from
 [bedtools](https://bedtools.readthedocs.io/en/latest/index.html).
 
