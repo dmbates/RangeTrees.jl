@@ -127,7 +127,7 @@ end
 
 using AbstractTrees
 
-AbstractTrees.ChildIndexing(::Type{<:RangeTree}) = IndexedChildren()
+AbstractTrees.ChildIndexing(::Type{<:RangeTree{T}}) where T = IndexedChildren()
 
 AbstractTrees.IndexNode(rt::RangeTree, node_index) = rt.nodes[node_index]
 
