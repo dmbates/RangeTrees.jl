@@ -7,8 +7,8 @@
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![PkgEval](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/R/RangeTrees.svg)](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
-This [Julia](https://julialang.org) package defines the `RangeTree` and `RangeNode` types to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{<:Interval}}`.
-An `intersect` method allows for evaluation of coverage of segments, as in the [coverage](https://bedtools.readthedocs.io/en/latest/content/tools/coverage.html) program from
+This [Julia](https://julialang.org) package defines the `RangeTree` and `RangeNode` types to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{T}} where {T<:Integer}`.
+A fast `intersect` method for target range and a `RangeTree` can be used to evaluate coverage by the ranges in the `RangeTree`, as in the [coverage](https://bedtools.readthedocs.io/en/latest/content/tools/coverage.html) program from
 [bedtools](https://bedtools.readthedocs.io/en/latest/index.html).
 
 The facilities of this package are a subset of those offered by [IntervalTrees.jl](http://github.com/BioJulia/IntervalTrees.jl) but tuned to the particular task of intersecting intervals represented as `UnitRange{<:Integer}`.
