@@ -12,5 +12,7 @@ using Test
     @test childindices(rt, 1) == ()
     @test nodevalue(rt, 1) == (0:0, 0)
     @test parentindex(rt, 1) == 2
+    @test_broken treesize(rt) == 5
+    @test_broken treeheight(rt) == 3
     print_tree(rt)
 end

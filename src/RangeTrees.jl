@@ -95,10 +95,14 @@ Base.eachindex(rt::RangeTree) = eachindex(rt.nodes)
 Base.getindex(rt::RangeTree, idx::Integer) = rt.nodes[idx]
 
 """
-    intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeTree, index)
+    intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeTree, idx::Integer)
 
-Recursively intersect `target` with the intervals in the subtree of `rt.nodes[index]`.
-Non-empty intersections are pushed onto `result` in sorted order.
+Recursively intersect `target` with the intervals in the subtree of `rt[idx]`.
+
+Non-empty intersections are pushed onto `result` in the same order as the intersecting nodes
+appear in the tree. Storing `maxlast` allows for the pre-order depth-first search to be truncated
+when a node's `maxlast` is less than `first(target)`.  Because the nodes are in non-decreasing
+order of `first(intvl)` the right subtree can be skipped when `last(target) < first(intvl)`.
 """
 function intersect!(
     result::Vector{UnitRange{T}},
