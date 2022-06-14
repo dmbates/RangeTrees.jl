@@ -7,30 +7,47 @@
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![PkgEval](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/R/RangeTrees.svg)](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/report.html)
 
-This [Julia](https://julialang.org) package defines the `RangeTree` and `RangeNode` types to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{T}} where {T<:Integer}`.
-A fast `intersect` method for target range and a `RangeTree` can be used to evaluate coverage by the ranges in the `RangeTree`, as in the [coverage](https://bedtools.readthedocs.io/en/latest/content/tools/coverage.html) program from
+This [Julia](https://julialang.org) package defines the `RangeTree` type to represent an [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) created from a `Vector{UnitRange{T}} where {T<:Integer}`.
+A fast `intersect` method for a target range and a `RangeTree` can be used to evaluate coverage by the ranges in the `RangeTree`, as in the [coverage](https://bedtools.readthedocs.io/en/latest/content/tools/coverage.html) program from
 [bedtools](https://bedtools.readthedocs.io/en/latest/index.html).
 
-The facilities of this package are a subset of those offered by [IntervalTrees.jl](http://github.com/BioJulia/IntervalTrees.jl) but tuned to the particular task of intersecting intervals represented as `UnitRange{<:Integer}`.
+Tree traversal, printing, etc. use the [AbstractTrees.jl](https://github.com/JuliaCollections/AbstractTrees.jl) framework.
 
-The example in the figure on the [Wikipedia page](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) would be reproduced as
+The facilities of this package are a subset of those offered by [IntervalTrees.jl](http://github.com/BioJulia/IntervalTrees.jl) but tuned to the particular task of intersecting a `UnitRange` target with the intervals (also represented as `UnitRange`) in the tree.
+
+The example in the figure on the [Wikipedia page](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree) can be reproduced as
 ```julia
 julia> using RangeTrees
 
-julia> rt = RangeTree([0:0, 3:40, 10:14, 20:35, 29:98]); 
+julia> rt = RangeTree([0:0, 3:40, 10:14, 20:35, 29:98]);
 
-julia> rt.nodes
-5-element Vector{RangeNode{Int64}}:
- RangeNode{Int64}(0:0, 0, 0, 0)
- RangeNode{Int64}(3:40, 1, 0, 40)
- RangeNode{Int64}(10:14, 2, 5, 98)
- RangeNode{Int64}(20:35, 0, 0, 35)
- RangeNode{Int64}(29:98, 4, 0, 98)
+julia> print_tree(rt)
+(10:14, 98)
+├─ (3:40, 40)
+│  └─ (0:0, 0)
+└─ (29:98, 98)
+   └─ (20:35, 35)
 
-julia> show(intersect(40:59, rt))
-UnitRange{Int64}[40:40, 40:59]
+julia> results = intersect(40:59, rt)
+2-element Vector{UnitRange{Int64}}:
+ 40:40
+ 40:59
+
+julia> intersect!(empty!(results), 40:59, rt)
+2-element Vector{UnitRange{Int64}}:
+ 40:40
+ 40:59
+
+julia> intersect!(empty!(results), 40:59, rt)
+2-element Vector{UnitRange{Int64}}:
+ 40:40
+ 40:59
 ```
 
-The tree is different from that shown in the figure because a `RangeTree` is constructed to be balanced and the one in the figure is not balanced.
+Each node in the `print_tree` output is shown as the range at that node and the maximum value of `last(range)` in the subtree rooted at that node.  This is the augmentation in the tree that allows for fast intersection of the nodes in the tree with a target tree.
+
+The tree `rt` is not the same as the one shown in the figure because a `RangeTree` is constructed to be balanced and the one in the figure is not balanced.
 Note that in the figure the intervals exclude the right hand endpoint whereas Julia's `UnitRange{<:Integer}` is inclusive of both end points.
 Thus `[20, 36)` in the figure corresponds to the range `20:35`.
+
+The `intersect!` method allows for passing the vector that will be the result, reducing the memory allocations.  Note that the first argument to `intersect!` should be wrapped in `empty!`.
