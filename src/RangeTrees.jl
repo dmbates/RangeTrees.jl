@@ -50,7 +50,7 @@ function AbstractTrees.children(rt::RangeNode)
     return map(r -> RangeNode(r, v, maxl), filter(!isempty, childranges))
 end
 
-AbstractTrees.nodetype(::Type{RangeNode{T}}) where T = RangeNode{T}
+AbstractTrees.nodetype(::Type{RangeNode{T}}) where {T} = RangeNode{T}
 
 function AbstractTrees.nodevalue(rt::RangeNode)
     (; irange, v, maxl) = rt
@@ -61,7 +61,7 @@ end
 Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, nodevalue(rt))
 
 function AbstractTrees.printnode(io::IO, rt::RangeNode)
-    print(io, nodevalue(rt))
+    return print(io, nodevalue(rt))
 end
 
 maxlast(rt::RangeNode) = rt.maxl[midrange(rt)]
@@ -71,7 +71,7 @@ function updatemaxl!(rt::RangeNode)
     return rt
 end
 
-function RangeNode(v::Vector{UnitRange{T}}) where T
+function RangeNode(v::Vector{UnitRange{T}}) where {T}
     rt = RangeNode(UnitRange(eachindex(v)), sort!(copy(v); by=first), last.(v))
     for node in PostOrderDFS(rt)
         updatemaxl!(node)
@@ -92,12 +92,10 @@ when a node's `maxlast` is less than `first(target)`.  Because the nodes are in 
 order of `first(intvl)` the right subtree can be skipped when `last(target) < first(intvl)`.
 """
 function Base.intersect!(
-    result::Vector{UnitRange{T}},
-    target::AbstractUnitRange{T},
-    rt::RangeNode{T}
-) where T
+    result::Vector{UnitRange{T}}, target::AbstractUnitRange{T}, rt::RangeNode{T}
+) where {T}
     (; irange, v, maxl) = rt
-    
+
     maxlast(rt) < first(target) && return result
 
     mid = midrange(irange)
@@ -106,25 +104,24 @@ function Base.intersect!(
     isect = intersect(v[mid], target)
     isempty(isect) || push!(result, isect)
     rrng = increment(mid):last(irange)
-    isempty(rrng) || last(target) < first(irange) ||
-      intersect!(result, target, RangeNode(rrng, v, maxl))
+    isempty(rrng) ||
+        last(target) < first(irange) ||
+        intersect!(result, target, RangeNode(rrng, v, maxl))
     return result
 end
 
-function Base.intersect(target::AbstractUnitRange{T}, rt::RangeNode{T}) where T
+function Base.intersect(target::AbstractUnitRange{T}, rt::RangeNode{T}) where {T}
     return intersect!(typeof(target)[], target, rt)
 end
 
-function Base.intersect(rt::RangeNode{T}, target::AbstractUnitRange{T}) where T
+function Base.intersect(rt::RangeNode{T}, target::AbstractUnitRange{T}) where {T}
     return intersect(target, rt)
 end
 
-export
-    Leaves,
+export Leaves,
     PostOrderDFS,
     PreOrderDFS,
     RangeNode,
-
     children,
     intersect!,
     midrange,
