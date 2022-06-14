@@ -58,12 +58,12 @@ function AbstractTrees.nodevalue(rt::RangeNode)
     return v[mid], maxl[mid]
 end
 
-Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, nodevalue(rt))
-
+Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, AbstractTrees.nodevalue(rt))
+#=
 function AbstractTrees.printnode(io::IO, rt::RangeNode)
     return print(io, nodevalue(rt))
 end
-
+=#
 maxlast(rt::RangeNode) = rt.maxl[midrange(rt)]
 
 function updatemaxl!(rt::RangeNode)
@@ -126,7 +126,7 @@ export Leaves,
     intersect!,
     midrange,
     nodetype,
-    nodevalue,
+#    nodevalue,
     print_tree,
     treebreadth,
     treeheight,
