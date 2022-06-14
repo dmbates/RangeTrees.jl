@@ -19,14 +19,6 @@ julia> using RangeTrees
 
 julia> rt = RangeTree([0:0, 3:40, 10:14, 20:35, 29:98]); 
 
-julia> rt.nodes
-5-element Vector{RangeNode{Int64}}:
- RangeNode{Int64}(0:0, 0, 0, 0)
- RangeNode{Int64}(3:40, 1, 0, 40)
- RangeNode{Int64}(10:14, 2, 5, 98)
- RangeNode{Int64}(20:35, 0, 0, 35)
- RangeNode{Int64}(29:98, 4, 0, 98)
-
 julia> show(intersect(40:59, rt))
 UnitRange{Int64}[40:40, 40:59]
 ```
@@ -34,3 +26,46 @@ UnitRange{Int64}[40:40, 40:59]
 The tree is different from that shown in the figure because a `RangeTree` is constructed to be balanced and the one in the figure is not balanced.
 Note that in the figure the intervals exclude the right hand endpoint whereas Julia's `UnitRange{<:Integer}` is inclusive of both end points.
 Thus `[20, 36)` in the figure corresponds to the range `20:35`.
+
+Methods for some [AbstractTrees.jl](https://github.com/JuliaCollections/AbstractTrees.jl) generics are available, most importantly `print_tree`.
+These methods are called on an `IndexNode` generated from the `RangeTree`.
+```julia
+julia> idxnd = IndexNode(rt);
+
+julia> print_tree(idxnd)
+(10:14, 98)
+├─ (3:40, 40)
+│  └─ (0:0, 0)
+└─ (29:98, 98)
+   └─ (20:35, 35)
+
+julia> treesize(idxnd)
+5
+
+julia> treebreadth(idxnd)
+2
+
+julia> treeheight(idxnd)
+2
+
+julia> collect(nodevalue.(Leaves(idxnd)))
+2-element Vector{Tuple{UnitRange{Int64}, Int64}}:
+ (0:0, 0)
+ (20:35, 35)
+
+julia> collect(nodevalue.(PostOrderDFS(idxnd)))  # post-order, depth-first traversal 
+5-element Vector{Tuple{UnitRange{Int64}, Int64}}:
+ (0:0, 0)
+ (3:40, 40)
+ (20:35, 35)
+ (29:98, 98)
+ (10:14, 98)
+
+julia> collect(nodevalue.(PreOrderDFS(idxnd)))  # pre-order, depth-first traversal
+5-element Vector{Tuple{UnitRange{Int64}, Int64}}:
+ (10:14, 98)
+ (3:40, 40)
+ (0:0, 0)
+ (29:98, 98)
+ (20:35, 35)
+``` 
