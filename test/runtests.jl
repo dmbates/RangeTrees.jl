@@ -3,7 +3,7 @@ using AbstractTrees
 using Test
 
 @testset "RangeTrees.jl" begin
-    rt = RangeTree([0:0, 3:40, 10:14, 20:35, 29:98]) # example from Wikipedia page
+    rt = RangeNode([0:0, 3:40, 10:14, 20:35, 29:98]) # example from Wikipedia page
     result = intersect(40:59, rt)
     @test result == [40:40, 40:59]
     @test intersect!(empty!(result), 40:59, rt) == [40:40, 40:59]
