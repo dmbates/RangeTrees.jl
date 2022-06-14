@@ -40,7 +40,7 @@ decrement(idx) = idx - one(idx)
 
 increment(idx) = idx + one(idx)
 
-# AbstractTrees.NodeType(::Type{RangeNode{T}}) where T = HasNodeType()
+AbstractTrees.NodeType(::Type{RangeNode{T}}) where T = HasNodeType()
 
 function AbstractTrees.children(rt::RangeNode)
     (; irange, v, maxl) = rt
@@ -51,7 +51,7 @@ function AbstractTrees.children(rt::RangeNode)
 end
 
 AbstractTrees.nodetype(::Type{RangeNode{T}}) where {T} = RangeNode{T}
-#=
+
 function AbstractTrees.nodevalue(rt::RangeNode)
     (; irange, v, maxl) = rt
     mid = midrange(irange)
@@ -59,7 +59,7 @@ function AbstractTrees.nodevalue(rt::RangeNode)
 end
 
 Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, AbstractTrees.nodevalue(rt))
-=#
+
 function AbstractTrees.printnode(io::IO, rt::RangeNode)
     (; irange, v, maxl) = rt
     mid = midrange(irange)
@@ -81,7 +81,7 @@ function RangeNode(v::Vector{UnitRange{T}}) where {T}
     return rt
 end
 
-# AbstractTrees.getroot(rt::RangeNode) = rt
+AbstractTrees.getroot(rt::RangeNode) = rt
 
 """
     intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeNode)
@@ -128,7 +128,7 @@ export Leaves,
     intersect!,
     midrange,
     nodetype,
-#    nodevalue,
+    nodevalue,
     print_tree,
     treebreadth,
     treeheight,
