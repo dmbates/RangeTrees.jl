@@ -2,6 +2,8 @@ module RangeTrees
 
 using AbstractTrees
 
+import Base.intersect!
+
 """
     RangeNode{T}
 
@@ -21,17 +23,21 @@ struct RangeNode{T}
     intvl::UnitRange{T}  # value of the node
     left::Int    # index of the root of the left subtree (0 => no left subtree)
     right::Int   # index of the root of the right subtree (0 => no right subtree)
-    parent::Int  # index of the parent (0 => no parent)
     maxlast::T   # maximum(last(n.intvl) where n is a node in this node's subtree)
 end
 
-"""
-    midrange(rng::UnitRange{T})::T
+decrement(idx) = idx - one(idx)
 
-Return the largest median of `rng`.
+increment(idx) = idx + one(idx)
+
 """
-midrange(rng::UnitRange{T}) where T = (first(rng) + last(rng) + one(T)) >> 1
-midrange(one2::Base.OneTo{T}) where T = (last(one2) + one(T) + one(T)) >> 1
+    midrange(rng::AbstractUnitRange{T}) where {T<:Integer}
+
+Return the median of `rng`, rounding up when `length(rng)` is even.
+"""
+function midrange(rng::AbstractUnitRange{T}) where {T<:Integer}
+    return (first(rng) + last(rng) + one(T)) >> 1
+end
 
 """
     _addchildren!(v::Vector{RangeNode{T}}, inds::UnitRange) where T
@@ -40,20 +46,20 @@ Internal utility to recursively re-write the `left`, `right`, and `maxlast`
 fields in `v[inds]` so as to form an augmented, balanced, binary
 [interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree).
 """
-function _addchildren!(v::Vector{RangeNode{T}}, inds::UnitRange, parent) where T
+function _addchildren!(v::Vector{RangeNode{T}}, inds::AbstractUnitRange) where {T}
     mid = midrange(inds)
     (; intvl, left, right, maxlast) = v[mid]
-    linds = first(inds):(mid - 1) 
+    linds = first(inds):decrement(mid) 
     if !isempty(linds)
-        left = _addchildren!(v, linds, mid)
+        left = _addchildren!(v, linds)
         maxlast = max(maxlast, v[left].maxlast)
     end
-    rinds = (mid + 1):last(inds)
+    rinds = increment(mid):last(inds)
     if !isempty(rinds)
-        right = _addchildren!(v, rinds, mid)
+        right = _addchildren!(v, rinds)
         maxlast = max(maxlast, v[right].maxlast)
     end
-    v[mid] = RangeNode(intvl, left, right, parent, maxlast)
+    v[mid] = RangeNode(intvl, left, right, maxlast)
     return mid
 end
 
@@ -64,11 +70,10 @@ An augmented, balanced, binary [interval tree](https://en.wikipedia.org/wiki/Int
 of intervals of integers represented as a [UnitRange](@ref).
 
 The `nodes` field, a vector of [RangeNode](@ref)s, is the tree.
-The root node of a `RangeTree` `rt` is `rt.nodes[rt.rootind]`.
-The `rootind` field should always be `midrange(UnitRange(eachindex(nodes)))`.
+The root node of a `RangeTree` has index `midrange(eachindex(nodes))`.
 
-A `RangeTree` is usually constructed from a `Vector{UnitRange{<:Integer}}`.  It is designed
-to allow for fast intersection of another `UnitRange{<:Integer` with the values of all the
+A `RangeTree` is usually constructed from a `Vector{UnitRange{<:Integer}}`.
+It is designed to allow for fast intersection of another `UnitRange{<:Integer}` with the values of all the
 nodes in the tree.
 
 ```jldoctest
@@ -84,11 +89,11 @@ struct RangeTree{T}
     nodes::Vector{RangeNode{T}}
 end
 
-function RangeTree(v::AbstractVector{UnitRange{T}}) where T
-    issorted(v; by=first) || sort!(v; by=first)
-    v = [RangeNode(ivl, 0, 0, 0, last(ivl)) for ivl in v]
-    _addchildren!(v, UnitRange(eachindex(v)), 0)
-    return RangeTree(v)
+function RangeTree(v::AbstractVector{UnitRange{T}}) where {T}
+    ivls = issorted(v; by=first) ? v : sort(v; by=first)
+    nodes = [RangeNode(ivl, 0, 0, last(ivl)) for ivl in ivls]
+    _addchildren!(nodes, eachindex(nodes))
+    return RangeTree(nodes)
 end
 
 Base.eachindex(rt::RangeTree) = eachindex(rt.nodes)
@@ -147,16 +152,12 @@ function AbstractTrees.nodevalue(rt::RangeTree, idx::Integer)
     return (nv.intvl, nv.maxlast)
 end
 
-function AbstractTrees.parentindex(rt::RangeTree, idx::Integer)
-    parind = rt[idx].parent
-    return iszero(parind) ? nothing : parind
-end
-
 function AbstractTrees.rootindex(rt::RangeTree)
     return midrange(eachindex(rt))
 end
 
 export
+    IndexNode,
     Leaves,
     PostOrderDFS,
     PreOrderDFS,
@@ -166,7 +167,7 @@ export
     childindices,
     intersect!,
     midrange,
-    parentindex,
+    nodevalue,
     print_tree,
     rootindex,
     treebreadth,
