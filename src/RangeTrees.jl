@@ -18,7 +18,7 @@ in the right subtree.  This is the "augmentation" in an
 [augmented interval tree](https://en.wikipedia.org/wiki/Interval_tree#Augmented_tree)
 that allows for efficient intersection of an interval with all the nodes of a
 [RangeTree](@ref).
-""" 
+"""
 struct RangeNode{T}
     intvl::UnitRange{T}  # value of the node
     left::Int    # index of the root of the left subtree (0 => no left subtree)
@@ -49,7 +49,7 @@ fields in `v[inds]` so as to form an augmented, balanced, binary
 function _addchildren!(v::Vector{RangeNode{T}}, inds::AbstractUnitRange) where {T}
     mid = midrange(inds)
     (; intvl, left, right, maxlast) = v[mid]
-    linds = first(inds):decrement(mid) 
+    linds = first(inds):decrement(mid)
     if !isempty(linds)
         left = _addchildren!(v, linds)
         maxlast = max(maxlast, v[left].maxlast)
@@ -113,8 +113,8 @@ function intersect!(
     result::Vector{UnitRange{T}},
     target::UnitRange{T},
     rt::RangeTree{T},
-    node_index::Integer
-) where T
+    node_index::Integer,
+) where {T}
     (; intvl, left, right, maxlast) = rt[node_index]
 
     maxlast < first(target) && return result
@@ -126,15 +126,17 @@ function intersect!(
     return result
 end
 
-function intersect!(result::Vector{UnitRange{T}}, target::UnitRange{T}, rt::RangeTree{T}) where T
+function intersect!(
+    result::Vector{UnitRange{T}}, target::UnitRange{T}, rt::RangeTree{T}
+) where {T}
     return intersect!(empty!(result), target, rt, rootindex(rt))
 end
 
-function Base.intersect(target::AbstractUnitRange{T}, rt::RangeTree{T}) where T
+function Base.intersect(target::AbstractUnitRange{T}, rt::RangeTree{T}) where {T}
     return intersect!(typeof(target)[], target, rt)
 end
 
-function Base.intersect(refs::RangeTree{T}, target::AbstractUnitRange{T}) where T
+function Base.intersect(refs::RangeTree{T}, target::AbstractUnitRange{T}) where {T}
     return intersect(target, refs)
 end
 
@@ -156,14 +158,12 @@ function AbstractTrees.rootindex(rt::RangeTree)
     return midrange(eachindex(rt))
 end
 
-export
-    IndexNode,
+export IndexNode,
     Leaves,
     PostOrderDFS,
     PreOrderDFS,
     RangeNode,
     RangeTree,
-
     childindices,
     intersect!,
     midrange,
