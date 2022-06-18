@@ -20,9 +20,9 @@ julia> intersect(40:59, rt)
 ````
 """
 struct RangeNode{T}
-    irange::UnitRange
-    v::Vector{UnitRange{T}}
-    maxl::Vector{T}
+    ranges::Vector{UnitRange{T}}
+    maxlast::Vector{T}
+    inds::UnitRange
 end
 
 """
@@ -34,54 +34,63 @@ function midrange(rng::AbstractUnitRange{T}) where {T<:Integer}
     return (first(rng) + last(rng) + one(T)) >> 1
 end
 
-midrange(rt::RangeNode) = midrange(rt.irange)
+"""
+    splitrange(rng)
 
-decrement(idx) = idx - one(idx)
+Split `rng` into `mid`, the value of [`midrange`](@ref), the `UnitRange` to
+the left of `mid` and the `UnitRange` to the right.
+"""
+function splitrange(rng)
+    mid = midrange(rng)
+    return first(rng):(mid - one(mid)), mid, (mid + one(mid)):last(rng)
+end
 
-increment(idx) = idx + one(idx)
+# recursively update the elements of maxlast in a depth-first pre-order scan
+function _updatemaxlast!(mlast::AbstractVector{T}, inds::AbstractUnitRange) where {T<:Number}
+    if !issubset(inds, eachindex(mlast)) 
+        throw(ArgumentError("inds = $inds is not a subset of eachindex(mlast)"))
+    end
+    left, mid, right = splitrange(inds)
+    thismax = mlast[mid]
+    isempty(left) || (thismax = max(thismax, _updatemaxlast!(mlast, left)))
+    isempty(right) || (thismax = max(thismax, _updatemaxlast!(mlast, right)))
+    mlast[mid] = thismax
+    return thismax
+end
+
+function RangeNode(ranges::Vector{UnitRange{T}}) where {T}
+    issorted(ranges; by=first) || (ranges = sort(ranges; by=first))
+    inds = UnitRange(eachindex(ranges))
+    maxlast = last.(ranges)
+    _updatemaxlast!(maxlast, inds)
+    return RangeNode(ranges, maxlast, inds)
+end
 
 AbstractTrees.NodeType(::Type{RangeNode{T}}) where T = HasNodeType()
 
 function AbstractTrees.children(rt::RangeNode)
-    (; irange, v, maxl) = rt
-    mid = midrange(irange)
-    childranges = (first(irange):decrement(mid), increment(mid):last(irange))
+    (; ranges, maxlast, inds) = rt
+    left, mid, right = splitrange(inds)
 
-    return map(r -> RangeNode(r, v, maxl), filter(!isempty, childranges))
+    return map(r -> RangeNode(ranges, maxlast, r), filter(!isempty, [left, right]))
 end
 
 AbstractTrees.nodetype(::Type{RangeNode{T}}) where {T} = RangeNode{T}
 
 function AbstractTrees.nodevalue(rt::RangeNode)
-    (; irange, v, maxl) = rt
-    mid = midrange(irange)
-    return v[mid], maxl[mid]
+    (; ranges, maxlast, inds) = rt
+    mid = midrange(inds)
+    return @inbounds ranges[mid], maxlast[mid]
 end
 
-Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, AbstractTrees.nodevalue(rt))
+# Base.show(io::IO, ::MIME"text/plain", rt::RangeNode) = show(io, nodevalue(rt))
 
-function AbstractTrees.printnode(io::IO, rt::RangeNode)
-    (; irange, v, maxl) = rt
-    mid = midrange(irange)
-    return print(io, (v[mid], maxl[mid]))
+AbstractTrees.isroot(rt::RangeNode) = isequal(rt.inds, eachindex(rt.maxlast))
+
+function AbstractTrees.getroot(rt::RangeNode)
+    (; ranges, maxlast) = rt
+    return RangeNode(ranges, maxlast, UnitRange(eachindex(maxlast)))
 end
-
-maxlast(rt::RangeNode) = rt.maxl[midrange(rt)]
-
-function updatemaxl!(rt::RangeNode)
-    rt.maxl[midrange(rt)] = max(maxlast(rt), maximum(maxlast, children(rt); init=0))
-    return rt
-end
-
-function RangeNode(v::Vector{UnitRange{T}}) where {T}
-    rt = RangeNode(UnitRange(eachindex(v)), sort!(copy(v); by=first), last.(v))
-    for node in PostOrderDFS(rt)
-        updatemaxl!(node)
-    end
-    return rt
-end
-
-AbstractTrees.getroot(rt::RangeNode) = rt
 
 """
     intersect!(result::AbstractVector{UnitRange}, target::UnitRange, rt::RangeNode)
@@ -96,19 +105,17 @@ order of `first(intvl)` the right subtree can be skipped when `last(target) < fi
 function Base.intersect!(
     result::Vector{UnitRange{T}}, target::AbstractUnitRange{T}, rt::RangeNode{T}
 ) where {T}
-    (; irange, v, maxl) = rt
+    (; ranges, maxlast, inds) = rt
 
-    maxlast(rt) < first(target) && return result
+    left, mid, right = splitrange(inds)
 
-    mid = midrange(irange)
-    lrng = first(irange):decrement(mid)
-    isempty(lrng) || intersect!(result, target, RangeNode(lrng, v, maxl))
-    isect = intersect(v[mid], target)
+    @inbounds maxlast[mid] < first(target) && return result
+    isempty(left) || intersect!(result, target, RangeNode(ranges, maxlast, left))
+    thisrange = @inbounds ranges[mid]
+    last(target) < first(thisrange) && return result
+    isect = intersect(thisrange, target)
     isempty(isect) || push!(result, isect)
-    rrng = increment(mid):last(irange)
-    isempty(rrng) ||
-        last(target) < first(irange) ||
-        intersect!(result, target, RangeNode(rrng, v, maxl))
+    isempty(right) || intersect!(result, target, RangeNode(ranges, maxlast, right))
     return result
 end
 
@@ -126,6 +133,7 @@ export Leaves,
     RangeNode,
     children,
     intersect!,
+    isroot,
     midrange,
     nodetype,
     nodevalue,
