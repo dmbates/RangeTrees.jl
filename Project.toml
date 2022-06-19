@@ -9,10 +9,12 @@ Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 
 [compat]
 AbstractTrees = "0.3, 0.4"
-julia = "1.8"
+Arrow = "2"
+julia = "1.7"
 
 [extras]
+Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Arrow", "Test"]

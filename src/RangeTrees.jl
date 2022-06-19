@@ -25,6 +25,10 @@ struct RangeNode{T}
     inds::UnitRange{<:Integer}
 end
 
+decrement(idx) = idx - one(idx)
+
+increment(idx) = idx + one(idx)
+
 """
     midrange(rng::AbstractUnitRange{T}) where {T<:Integer}
 

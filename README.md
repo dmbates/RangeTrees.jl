@@ -21,26 +21,26 @@ The example in the figure on the [Wikipedia page](https://en.wikipedia.org/wiki/
 ```julia
 julia> using RangeTrees
 
-julia> rt = RangeNode([0:0, 3:40, 10:14, 20:35, 29:98]);
+julia> rr = RangeNode([0:0, 3:40, 10:14, 20:35, 29:98]);
 
-julia> print_tree(rt)
+julia> print_tree(rn)
 (10:14, 98)
 ├─ (3:40, 40)
 │  └─ (0:0, 0)
 └─ (29:98, 98)
    └─ (20:35, 35)
 
-julia> results = intersect(40:59, rt)
+julia> results = intersect(40:59, rn)
 2-element Vector{UnitRange{Int64}}:
  40:40
  40:59
 
-julia> intersect!(empty!(results), 40:59, rt)
+julia> intersect!(empty!(results), 40:59, rn)
 2-element Vector{UnitRange{Int64}}:
  40:40
  40:59
 
-julia> intersect!(empty!(results), 40:59, rt)
+julia> intersect!(empty!(results), 40:59, rn)
 2-element Vector{UnitRange{Int64}}:
  40:40
  40:59
