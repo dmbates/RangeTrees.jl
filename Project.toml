@@ -5,6 +5,7 @@ version = "0.3.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 
 [compat]
 AbstractTrees = "0.3, 0.4"
