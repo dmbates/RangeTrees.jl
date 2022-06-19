@@ -25,10 +25,6 @@ struct RangeNode{T}
     inds::UnitRange{<:Integer}
 end
 
-decrement(idx) = idx - one(idx)
-
-increment(idx) = idx + one(idx)
-
 """
     midrange(rng::AbstractUnitRange{T}) where {T<:Integer}
 
@@ -49,6 +45,7 @@ function splitrange(rng)
     mid = midrange(rng)
     return first(rng):(mid - one(mid)), mid, (mid + one(mid)):last(rng)
 end
+splitrange(rn::RangeNode) = splitrange(rn.inds)
 
 # recursively update the elements of maxlast in a depth-first pre-order scan
 function _updatemaxlast!(mlast::AbstractVector{T}, inds::AbstractUnitRange) where {T<:Number}
@@ -65,7 +62,7 @@ end
 
 function RangeNode(ranges::Vector{UnitRange{T}}) where {T}
     issorted(ranges; by=first) || (ranges = sort(ranges; by=first))
-    inds = UnitRange(eachindex(ranges))
+    inds = UnitRange{length(ranges) ≤ typemax(Int32) ? Int32 : Int}(eachindex(ranges))
     maxlast = last.(ranges)
     _updatemaxlast!(maxlast, inds)
     return RangeNode(ranges, maxlast, inds)
@@ -94,7 +91,8 @@ AbstractTrees.isroot(rn::RangeNode) = isequal(rn.inds, eachindex(rn.maxlast))
 
 function AbstractTrees.getroot(rn::RangeNode)
     (; ranges, maxlast) = rn
-    return RangeNode(ranges, maxlast, UnitRange(eachindex(maxlast)))
+    inds = UnitRange{length(ranges) ≤ typemax(Int32) ? Int32 : Int}(eachindex(ranges))
+    return RangeNode(ranges, maxlast, inds)
 end
 
 function Base.intersect!(
@@ -157,6 +155,7 @@ export Leaves,
     nodetype,
     nodevalue,
     print_tree,
+    splitrange,
     treebreadth,
     treeheight,
     treesize

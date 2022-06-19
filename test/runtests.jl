@@ -34,6 +34,11 @@ increment(x) = x + one(x)
     @test treesize(rn) == length(rn.maxlast)
     @test treeheight(rn) == 12
     @test treebreadth(rn) == 2423
+    offspring = children(rn)
+    @test length(offspring) == 2
+    leftinds, mid, rightinds = splitrange(rn.inds)
+    @test mid == midrange(rn)
+    @test first(offspring).inds == leftinds
     target = 31659713:31668660
     result = similar(rn.ranges, 0)
     @test length(intersect!(result, target, rn)) == 12
