@@ -19,10 +19,10 @@ julia> intersect(40:59, rn)
  40:59
 ````
 """
-struct RangeNode{T}
+struct RangeNode{T,R}
     ranges::Vector{UnitRange{T}}
     maxlast::Vector{T}
-    inds::UnitRange{<:Integer}
+    inds::UnitRange{R}
 end
 
 """
@@ -77,7 +77,7 @@ function AbstractTrees.children(rn::RangeNode)
     return map(r -> RangeNode(ranges, maxlast, r), filter(!isempty, [left, right]))
 end
 
-AbstractTrees.nodetype(::Type{RangeNode{T}}) where {T} = RangeNode{T}
+AbstractTrees.nodetype(::Type{RangeNode{T,R}}) where {T,R} = RangeNode{T,R}
 
 function AbstractTrees.nodevalue(rn::RangeNode)
     (; ranges, maxlast, inds) = rn
@@ -149,6 +149,7 @@ export Leaves,
     PreOrderDFS,
     RangeNode,
     children,
+    getroot,
     intersect!,
     isroot,
     midrange,
