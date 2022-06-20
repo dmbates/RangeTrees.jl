@@ -68,7 +68,17 @@ function RangeNode(ranges::Vector{UnitRange{T}}) where {T}
     return RangeNode(ranges, maxlast, inds)
 end
 
-AbstractTrees.NodeType(::Type{RangeNode{T}}) where T = HasNodeType()
+AbstractTrees.NodeType(::Type{<:RangeNode}) = HasNodeType()
+
+AbstractTrees.nodetype(::Type{RangeNode{T,R}}) where {T,R} = RangeNode{T,R}
+
+Base.IteratorEltype(::Type{<:TreeIterator{RangeNode{T,R}}}) where {T,R} = Base.HasEltype()
+
+Base.eltype(::Type{<:TreeIterator{RangeNode{T,R}}}) where {T,R} = RangeNode{T,R}
+
+AbstractTrees.childtype(::Type{RangeNode{T,R}}) where {T,R} = RangeNode{T,R}
+
+AbstractTrees.childtype(rn::RangeNode{T,R}) where {T,R} = RangeNode{T,R}
 
 function AbstractTrees.children(rn::RangeNode)
     (; ranges, maxlast, inds) = rn
@@ -76,8 +86,6 @@ function AbstractTrees.children(rn::RangeNode)
 
     return map(r -> RangeNode(ranges, maxlast, r), filter(!isempty, [left, right]))
 end
-
-AbstractTrees.nodetype(::Type{RangeNode{T,R}}) where {T,R} = RangeNode{T,R}
 
 function AbstractTrees.nodevalue(rn::RangeNode)
     (; ranges, maxlast, inds) = rn

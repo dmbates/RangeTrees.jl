@@ -6,22 +6,30 @@ using Test
 const iob = IOBuffer()
 
 @testset "RangeTrees.jl" begin
-    rt = RangeNode([0:0, 3:40, 10:14, 20:35, 29:98]) # example from Wikipedia page
-    result = intersect(40:59, rt)
+    rn = RangeNode([0:0, 3:40, 10:14, 20:35, 29:98]) # example from Wikipedia page
+    result = intersect(40:59, rn)
     @test result == [40:40, 40:59]
-    @test intersect!(empty!(result), 40:59, rt) == [40:40, 40:59]
-    @test result == intersect(rt, 40:59)
+    @test intersect!(empty!(result), 40:59, rn) == [40:40, 40:59]
+    @test result == intersect(rn, 40:59)
        # test methods defined for AbstractTrees generics
-    @test treesize(rt) == 5
-    @test treeheight(rt) == 2
-    @test treebreadth(rt) == 2
-    @test nodetype(rt) == typeof(rt)
-    @test isnothing(print_tree(iob, rt))
+    @test treesize(rn) == 5
+    @test treeheight(rn) == 2
+    @test treebreadth(rn) == 2
+    @test nodetype(rn) == typeof(rn)
+    @test isnothing(show(iob, MIME"text/plain"(), rn))
+    @test String(take!(iob)) == "(10:14, 98)"
+    @test isnothing(print_tree(iob, rn))
     str = String(take!(iob))
     @test startswith(str, "(10:14, 98)\n")
     @test endswith(str, "(20:35, 35)\n")
-    @test getroot(rt) == rt
-    @test isroot(rt)
+    @test getroot(rn) == rn
+    @test isroot(rn)
+    @test_throws ArgumentError RangeTrees._updatemaxlast!(rn.maxlast, -2:2) # for code coverage
+    @test splitrange(rn) == (1:2, 3, 4:5)
+    @test NodeType(typeof(rn)) == HasNodeType()
+    @test eltype(PreOrderDFS(rn)) == typeof(rn)
+    @test childtype(rn) == typeof(rn)
+    @test childtype(typeof(rn)) == typeof(rn)
 end
 
 increment(x) = x + one(x)
