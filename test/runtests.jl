@@ -30,6 +30,8 @@ const iob = IOBuffer()
     @test eltype(PreOrderDFS(rn)) == typeof(rn)
     @test childtype(rn) == typeof(rn)
     @test childtype(typeof(rn)) == typeof(rn)
+    @test length(collect(PreOrderDFS(rn))) == length(rn.maxlast)
+    @test Base.IteratorEltype(PreOrderDFS(rn)) == Base.HasEltype()
 end
 
 increment(x) = x + one(x)

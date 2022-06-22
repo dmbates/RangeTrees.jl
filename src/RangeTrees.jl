@@ -95,12 +95,11 @@ end
 
 Base.show(io::IO, ::MIME"text/plain", rn::RangeNode) = show(io, nodevalue(rn))
 
-AbstractTrees.isroot(rn::RangeNode) = isequal(rn.inds, eachindex(rn.maxlast))
+AbstractTrees.isroot(rn::RangeNode) = rn.inds == eachindex(rn.maxlast)
 
-function AbstractTrees.getroot(rn::RangeNode)
+function AbstractTrees.getroot(rn::RangeNode{T,R}) where {T,R}
     (; ranges, maxlast) = rn
-    inds = UnitRange{length(ranges) ≤ typemax(Int32) ? Int32 : Int}(eachindex(ranges))
-    return RangeNode(ranges, maxlast, inds)
+    return RangeNode(ranges, maxlast, UnitRange{R}(eachindex(ranges)))
 end
 
 function Base.intersect!(
